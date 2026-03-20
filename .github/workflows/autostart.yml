@@ -2,41 +2,35 @@ name: Minecraft 3-Min Auto Start
 
 on:
   schedule:
-    - cron: '*/30 * * * *' # Әр 30 минут сайын жаңа цикл бастайды
-  workflow_dispatch:      # Қолмен іске қосу мүмкіндігі
+    - cron: '*/30 * * * *'
+  workflow_dispatch:
 
 jobs:
   keep-alive:
     runs-on: ubuntu-latest
     steps:
-      - name: 3-Minute Loop Check
+      - name: Auto Check Loop
         run: |
-          # 30 минут ішінде 10 рет тексереді (10 рет * 3 минут = 30 минут)
           for i in {1..10}
           do
             echo "Тексеру №$i..."
             
-            # 1. Сервер күйін алу (Сенің SERVER_ID және URL қолданылды)
-            STATUS=$(curl -s -X GET "https://panel.cloudblaze.org/api/client/servers/d5d42242/resources" \
+            STATUS_RES=$(curl -s -X GET "https://panel.cloudblaze.org/api/client/servers/d5d42242/resources" \
             -H "Authorization: Bearer ${{ secrets.MC_API_KEY }}" \
             -H "Accept: application/json")
             
-            STATE=$(echo $STATUS | jq -r '.attributes.current_state')
-            echo "Қазіргі күй: $STATE"
-
-            # 2. Егер сервер өшіп тұрса, оны қосу
-            if [ "$STATE" == "offline" ]; then
+            if [[ "$STATUS_RES" == *"offline"* ]]; then
               echo "Сервер өшіп тұр! Қосылуда..."
               curl -s -X POST "https://panel.cloudblaze.org/api/client/servers/d5d42242/power" \
               -H "Authorization: Bearer ${{ secrets.MC_API_KEY }}" \
               -H "Content-Type: application/json" \
               -d '{"signal": "start"}'
+            else
+              echo "Сервер жұмыс істеп тұр немесе қосылуда."
             fi
 
-            # 3. Келесі тексеруге дейін 3 минут (180 сек) күту
             if [ $i -lt 10 ]; then
-              echo "Келесі тексеруге дейін 3 минут күту..."
+              echo "3 минут күту..."
               sleep 180
             fi
           done
-
